@@ -1,9 +1,9 @@
-import { Hono } from "hono";
-import { bearerAuth } from "hono/bearer-auth";
+import { Hono } from "@hono/hono";
+import { bearerAuth } from "@hono/hono/bearer-auth";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "@zod/zod";
-import { db } from "../../../db/service.ts";
-import { config } from "../../../config.ts";
+import { db } from "@/db/service.ts";
+import { config } from "@/config.ts";
 
 const GetConnectionsSchema = z.object({
   discordId: z.string().regex(/^\d+$/).optional(),

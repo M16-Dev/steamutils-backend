@@ -1,4 +1,4 @@
-import base from "./config.json" with { type: "json" };
+import base from "@/config.json" with { type: "json" };
 import { z } from "@zod/zod";
 
 export const rawConfig = {

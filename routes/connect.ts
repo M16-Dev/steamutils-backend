@@ -1,8 +1,8 @@
-import { Hono } from "hono";
+import { Hono } from "@hono/hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "@zod/zod";
-import { db } from "../db/service.ts";
-import { renderHtmlPage } from "../utils/templates.ts";
+import { db } from "@/db/service.ts";
+import { renderHtmlPage } from "@/utils/templates.ts";
 
 const CodeParamSchema = z.object({
   code: z.string().toUpperCase().regex(/^[A-Z]{8}$/),

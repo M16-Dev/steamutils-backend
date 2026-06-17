@@ -1,9 +1,9 @@
-import { Hono } from "hono";
+import { Hono } from "@hono/hono";
+import { bearerAuth } from "@hono/hono/bearer-auth";
 import { zValidator } from "@hono/zod-validator";
-import { bearerAuth } from "hono/bearer-auth";
 import { z } from "@zod/zod";
-import { db } from "../../../db/service.ts";
-import config from "../../../config.ts";
+import { db } from "@/db/service.ts";
+import config from "@/config.ts";
 
 const tokensRouter = new Hono()
   .use(bearerAuth({ token: config.apiKey }))

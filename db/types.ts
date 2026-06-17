@@ -13,5 +13,7 @@ export interface ServerCodeRow extends Server {
 export interface Connection {
   discord_id: string;
   steam_id: string;
+  guild_id: string;
+  fetched: number; // 0 or 1
   created_at: string;
 }

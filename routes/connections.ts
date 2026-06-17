@@ -1,11 +1,11 @@
-import { Hono } from "hono";
+import { Hono } from "@hono/hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "@zod/zod";
 import { verify } from "@wok/djwt";
-import { config } from "../config.ts";
-import { db } from "../db/service.ts";
-import { SteamAuth } from "../utils/steamAuth.ts";
-import { renderHtmlPage } from "../utils/templates.ts";
+import { config } from "@/config.ts";
+import { db } from "@/db/service.ts";
+import { SteamAuth } from "@/utils/steamAuth.ts";
+import { renderHtmlPage } from "@/utils/templates.ts";
 
 const jwtKey = await crypto.subtle.importKey(
   "raw",

@@ -31,14 +31,14 @@ export class ConnectionsModel {
     return changes > 0;
   }
 
-  get(guildId: string): (Connection & { fetched: number })[] {
+  getAll(guildId: string): (Connection)[] {
     const stmt = this.db.prepare(
       "SELECT * FROM connections WHERE guild_id = ?",
     );
-    return stmt.all<Connection & { fetched: number }>(guildId);
+    return stmt.all<Connection>(guildId);
   }
 
-  fetchNew(guildId: string): (Connection)[] {
+  getNew(guildId: string): (Connection)[] {
     const stmt = this.db.prepare(
       "UPDATE connections SET fetched = 1 WHERE guild_id = ? AND fetched = 0 RETURNING *",
     );
@@ -77,18 +77,18 @@ export class ConnectionsModel {
     return changes > 0;
   }
 
-  getAllByDiscordId(discordId: string): (Connection & { guild_id: string })[] {
+  getAllByDiscordId(discordId: string): (Connection)[] {
     const stmt = this.db.prepare(
       "SELECT discord_id, steam_id, guild_id, created_at FROM connections WHERE discord_id = ?",
     );
-    return stmt.all<Connection & { guild_id: string }>(discordId);
+    return stmt.all<Connection>(discordId);
   }
 
-  getAllBySteamId(steamId: string): (Connection & { guild_id: string })[] {
+  getAllBySteamId(steamId: string): (Connection)[] {
     const stmt = this.db.prepare(
       "SELECT discord_id, steam_id, guild_id, created_at FROM connections WHERE steam_id = ?",
     );
-    return stmt.all<Connection & { guild_id: string }>(steamId);
+    return stmt.all<Connection>(steamId);
   }
 
   getDiscordId(steamId: string, guildId: string): string | null {
