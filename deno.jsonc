@@ -11,8 +11,8 @@
   },
   "imports": {
     "@/": "./",
-    "@hono/hono": "jsr:@hono/hono@^4.12.24",
-    "@hono/zod-validator": "jsr:@hono/zod-validator@^0.7.6",
+    "@hono/hono": "jsr:@hono/hono@^4.12.27",
+    "@hono/zod-validator": "jsr:@hono/zod-validator@^0.8.0",
     "@wok/djwt": "jsr:@wok/djwt@^3.0.2",
     "@zod/zod": "jsr:@zod/zod@^4.4.3",
     "@sitnik/nanoid": "jsr:@sitnik/nanoid@^5.1.11",
