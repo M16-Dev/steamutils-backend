@@ -13,6 +13,7 @@ export const rawConfig = {
   discordWebhookUrl: Deno.env.get("DISCORD_WEBHOOK_URL"),
   dbUrl: Deno.env.get("DB_URL") ?? "file:./data/steamutils.db",
   dbToken: Deno.env.get("DB_TOKEN"),
+  encryptionKey: Deno.env.get("ENCRYPTION_KEY"),
 };
 
 const PlanSchema = z.object({
@@ -22,16 +23,17 @@ const PlanSchema = z.object({
 const ConfigSchema = z.object({
   env: z.enum(["development", "production"]).default("production"),
   port: z.number().int().positive().max(65535),
-  botAccessToken: z.string(),
+  botAccessToken: z.string().min(32),
   apiUrl: z.url().regex(/^https?:\/\/.+/),
-  jwtSecret: z.string(),
+  jwtSecret: z.string().min(32),
   plans: z.record(z.string(), PlanSchema),
   botApiUrl: z.url().regex(/^https?:\/\/.+/),
-  botApiAccessToken: z.string().min(1),
+  botApiAccessToken: z.string().min(32),
   discordWebhookUrl: z.url().regex(/^https?:\/\/.+/),
   maxTokensPerGuild: z.number().int().positive(),
   dbUrl: z.string(),
-  dbToken: z.string().optional(),
+  dbToken: z.string().min(32).optional(),
+  encryptionKey: z.string().min(32),
 });
 
 const parsed = ConfigSchema.safeParse(rawConfig);

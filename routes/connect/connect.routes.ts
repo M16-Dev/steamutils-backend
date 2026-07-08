@@ -5,6 +5,8 @@ import { db } from "@/db/index.ts";
 import { serverCodes } from "@/db/schema/index.ts";
 import { eq } from "drizzle-orm";
 import { renderHtmlPage } from "@/utils/templates.ts";
+import { decryptPassword } from "@/utils/crypto.ts";
+import { config } from "@/config.ts";
 
 const CodeParamSchema = z.object({
   code: z.string().toUpperCase().regex(/^[A-Z]{8}$/),
@@ -24,6 +26,10 @@ export default new Hono().get("/:code", zValidator("param", CodeParamSchema), as
 
   if (!server) {
     return c.html(renderHtmlPage("Error", "Server not found", true), 404);
+  }
+
+  if (server.password) {
+    server.password = await decryptPassword(server.password, config.encryptionKey);
   }
 
   const steamUrl = `steam://connect/${server.ip}:${server.port}/${server.password ?? ""}`;

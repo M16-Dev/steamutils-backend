@@ -9,6 +9,7 @@ import { GuildEnv } from "@/types/hono.ts";
 import { customAlphabet } from "@sitnik/nanoid";
 import { paginationMiddleware } from "@/middlewares/pagination.ts";
 import { requireRole } from "@/middlewares/rbac.ts";
+import { decryptPassword, encryptPassword } from "@/utils/crypto.ts";
 
 const nanoid = customAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 8);
 
@@ -43,9 +44,11 @@ export default new Hono<GuildEnv>()
         columns: { code: true },
       });
 
+      const encryptedPassword = password ? await encryptPassword(password, config.encryptionKey) : null;
+
       if (existingCodeObj) {
         const existingCode = existingCodeObj.code;
-        await db.update(serverCodes).set({ password: password ?? null }).where(eq(serverCodes.code, existingCode));
+        await db.update(serverCodes).set({ password: encryptedPassword }).where(eq(serverCodes.code, existingCode));
         return c.json({ code: existingCode }, 200);
       }
 
@@ -58,7 +61,7 @@ export default new Hono<GuildEnv>()
 
       const newCode = nanoid();
       try {
-        await db.insert(serverCodes).values({ code: newCode, guildId, ip, port, password: password ?? null });
+        await db.insert(serverCodes).values({ code: newCode, guildId, ip, port, password: encryptedPassword });
       } catch (_) {
         return c.json({ error: "Failed to generate unique code." }, 500);
       }
@@ -95,6 +98,10 @@ export default new Hono<GuildEnv>()
 
       if (!serverCodeObj) {
         return c.json({ error: "Code not found" }, 404);
+      }
+
+      if (serverCodeObj.password) {
+        serverCodeObj.password = await decryptPassword(serverCodeObj.password, config.encryptionKey);
       }
 
       return c.json(serverCodeObj, 200);
@@ -152,6 +159,12 @@ export default new Hono<GuildEnv>()
         .where(eq(serverCodes.guildId, guildId))
         .limit(limit)
         .offset(offset);
+
+      for (const code of codes) {
+        if (code.password) {
+          code.password = await decryptPassword(code.password, config.encryptionKey);
+        }
+      }
 
       return c.json(codes, 200);
     },
