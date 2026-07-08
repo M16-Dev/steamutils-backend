@@ -1,6 +1,12 @@
 import { timingSafeEqual } from "@std/crypto/timing-safe-equal";
 import { decodeBase64, encodeBase64 } from "@std/encoding/base64";
 
+/**
+ * Safely compares two strings to prevent timing attacks.
+ * @param a - The first string to compare.
+ * @param b - The second string to compare.
+ * @returns True if the strings are equal, false otherwise.
+ */
 export function safeCompare(a: string, b: string): boolean {
   const enc = new TextEncoder();
   const bufA = enc.encode(a);
@@ -9,6 +15,11 @@ export function safeCompare(a: string, b: string): boolean {
   return timingSafeEqual(bufA, bufB);
 }
 
+/**
+ * Hashes a token using SHA-256.
+ * @param token - The token to hash.
+ * @returns The hashed token.
+ */
 export async function hashToken(token: string): Promise<string> {
   const hashBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
   return Array.from(new Uint8Array(hashBuffer)).map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -16,6 +27,11 @@ export async function hashToken(token: string): Promise<string> {
 
 const ENCRYPTION_ALGORITHM = "AES-GCM";
 
+/**
+ * Gets the encryption key from the provided key string.
+ * @param keyString - The base64-encoded encryption key.
+ * @returns The CryptoKey object.
+ */
 async function getEncryptionKey(keyString: string): Promise<CryptoKey> {
   const keyBytes = decodeBase64(keyString);
   return await crypto.subtle.importKey(
@@ -27,6 +43,12 @@ async function getEncryptionKey(keyString: string): Promise<CryptoKey> {
   );
 }
 
+/**
+ * Encrypts a password using AES-GCM algorithm.
+ * @param password - The password to encrypt.
+ * @param keyString - The base64-encoded encryption key.
+ * @returns The base64-encoded encrypted password.
+ */
 export async function encryptPassword(password: string, keyString: string): Promise<string> {
   const key = await getEncryptionKey(keyString);
   const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -46,6 +68,12 @@ export async function encryptPassword(password: string, keyString: string): Prom
   return encodeBase64(resultBytes);
 }
 
+/**
+ * Decrypts a base64-encoded encrypted password using AES-GCM algorithm.
+ * @param encryptedPassword - The base64-encoded encrypted password.
+ * @param keyString - The base64-encoded encryption key.
+ * @returns The decrypted password string.
+ */
 export async function decryptPassword(encryptedPassword: string, keyString: string): Promise<string> {
   const key = await getEncryptionKey(keyString);
   const encryptedBytes = decodeBase64(encryptedPassword);

@@ -1,3 +1,11 @@
+/**
+ * Renders an HTML page with a given title and message.
+ * @param title - The title of the page.
+ * @param message - The message to display on the page.
+ * @param isError - Whether the message is an error.
+ * @param autoRedirect - Optional auto-redirect URL.
+ * @returns The rendered HTML page as a string.
+ */
 export function renderHtmlPage(title: string, message: string, isError: boolean = false, autoRedirect?: string) {
   const color = isError ? "#ef4444" : "#22c55e";
   const icon = isError

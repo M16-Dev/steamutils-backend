@@ -24,6 +24,11 @@ const paginationSchema = z.object({
 
 const factory = createFactory<IdentityEnv>();
 
+/**
+ * Pagination middleware for Hono.
+ * It adds query params for pagination and extends response with meta data.
+ * Sets pagination object in context ({ page, limit, offset })
+ */
 export const paginationMiddleware = factory.createHandlers(
   validator("query", paginationSchema),
   async (c, next) => {

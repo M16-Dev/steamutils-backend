@@ -6,6 +6,11 @@ import { eq } from "drizzle-orm";
 import { hashToken, safeCompare } from "@/utils/crypto.ts";
 import { config } from "@/config.ts";
 
+/**
+ * Authentication middleware for Hono.
+ * Identifies user by access token.
+ * Sets userRole and tokenGuildId in context.
+ */
 export const authMiddleware = createMiddleware<IdentityEnv>(async (c, next) => {
   const authHeader = c.req.header("Authorization");
 

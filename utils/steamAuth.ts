@@ -9,6 +9,11 @@ export class SteamAuth {
     this.realm = realm;
   }
 
+  /**
+   * Generates Steam OpenID redirect URL.
+   * @param state - State object to include in redirect URL.
+   * @returns Redirect URL for Steam OpenID login.
+   */
   getRedirectUrl(state: Record<string, string> = {}): string {
     const params = new URLSearchParams({
       "openid.ns": "http://specs.openid.net/auth/2.0",
@@ -21,6 +26,11 @@ export class SteamAuth {
     return `${STEAM_OPENID_URL}?${params.toString()}`;
   }
 
+  /**
+   * Verifies Steam OpenID response and extracts Steam ID.
+   * @param requestUrl - URL from the verification request.
+   * @returns Steam ID if verification is successful, otherwise null.
+   */
   async verify(requestUrl: URL): Promise<string | null> {
     const params = requestUrl.searchParams;
 
@@ -43,6 +53,11 @@ export class SteamAuth {
     return match ? match[1] : null;
   }
 
+  /**
+   * Extracts state object from verification request URL.
+   * @param requestUrl - URL from the verification request.
+   * @returns State object.
+   */
   getState(requestUrl: URL): Record<string, string> {
     const params = requestUrl.searchParams;
     const state: Record<string, string> = {};
@@ -54,6 +69,11 @@ export class SteamAuth {
     return state;
   }
 
+  /**
+   * Builds return URL with state parameters.
+   * @param state - State object to include in return URL.
+   * @returns Return URL with state parameters.
+   */
   private buildReturnUrl(state: Record<string, string>): string {
     const url = new URL(this.returnUrl);
     for (const [key, value] of Object.entries(state)) {

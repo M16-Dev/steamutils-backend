@@ -1,3 +1,8 @@
+/**
+ * Strips "Public" tag from OpenAPI specification paths.
+ * @param spec - OpenAPI specification.
+ * @returns OpenAPI specification with "Public" tag removed from paths.
+ */
 export function stripPublicTag(spec: Record<string, unknown>): Record<string, unknown> {
   const paths = spec.paths as Record<string, Record<string, { tags?: string[] }>> | undefined;
   if (!paths) return spec;
@@ -22,6 +27,11 @@ export function stripPublicTag(spec: Record<string, unknown>): Record<string, un
   return { ...spec, paths: newPaths };
 }
 
+/**
+ * Filters out paths with "Public" tag from OpenAPI specification.
+ * @param spec - OpenAPI specification.
+ * @returns OpenAPI specification without "Public" tagged paths.
+ */
 export function filterPublicPaths(spec: Record<string, unknown>): Record<string, unknown> {
   const paths = spec.paths as Record<string, Record<string, { tags?: string[] }>> | undefined;
   if (!paths) return spec;

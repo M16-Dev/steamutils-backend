@@ -1,5 +1,11 @@
 import config from "@/config.ts";
 
+/**
+ * Sends a message to the configured Discord webhook.
+ * @param type - Type of message: "info" or "error".
+ * @param title - Title of the message.
+ * @param message - Message content.
+ */
 export const sendMessage = async (type: "info" | "error", title: string, message: string) => {
   try {
     await fetch(config.discordWebhookUrl + "?with_components=true", {

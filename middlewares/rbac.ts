@@ -2,6 +2,9 @@ import { createMiddleware } from "@hono/hono/factory";
 import type { IdentityEnv, Role } from "@/types/hono.ts";
 import { sendMessage } from "@/utils/discordLogger.ts";
 
+/**
+ * Checks if the user has the required role.
+ */
 export const requireRole = (allowedRoles: Role[]) => {
   return createMiddleware<IdentityEnv>(async (c, next) => {
     const userRole = c.get("userRole");
@@ -19,6 +22,10 @@ export const requireRole = (allowedRoles: Role[]) => {
   });
 };
 
+/**
+ * Deny by default middleware for Hono.
+ * If no role is set, deny access.
+ */
 export const denyByDefault = createMiddleware<IdentityEnv>(async (c, next) => {
   await next();
   if (!c.get("permissionsChecked")) {

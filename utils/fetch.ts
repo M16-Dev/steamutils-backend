@@ -1,3 +1,11 @@
+/**
+ * Fetches a URL with retry logic.
+ * @param url - URL to fetch.
+ * @param options - Request options.
+ * @param maxRetries - Maximum number of retries.
+ * @param baseDelayMs - Base delay between retries (exponential backoff).
+ * @returns Promise that resolves to the response.
+ */
 export async function fetchWithRetry(
   url: string | URL | Request,
   options?: RequestInit,
