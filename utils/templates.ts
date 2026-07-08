@@ -4,7 +4,7 @@ export function renderHtmlPage(title: string, message: string, isError: boolean 
     ? `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`
     : `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
 
-  const redirectScript = autoRedirect ? `<script>window.location.href = "${autoRedirect}";</script>` : "";
+  const metaRefresh = autoRedirect ? `<meta http-equiv="refresh" content="0;url=${autoRedirect}">` : "";
 
   return `<!DOCTYPE html>
 <html lang="pl">
@@ -12,6 +12,7 @@ export function renderHtmlPage(title: string, message: string, isError: boolean 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${title}</title>
+    ${metaRefresh}
     <style>
         body {
             font-family: system-ui, sans-serif;
@@ -70,9 +71,8 @@ export function renderHtmlPage(title: string, message: string, isError: boolean 
         </div>
         <h1>${title}</h1>
         <p>${message}</p>
-        ${!isError ? (autoRedirect ? "" : '<div class="badge">You can safely close this window</div>') : ""}
+        ${!isError ? (autoRedirect ? "" : `<div class="badge">You can safely close this window</div>`) : ""}
     </div>
-    ${redirectScript}
 </body>
 </html>`;
 }
