@@ -1,5 +1,5 @@
 import { Hono } from "@hono/hono";
-import { zValidator } from "@hono/zod-validator";
+import { validator } from "hono-openapi";
 import { z } from "@zod/zod";
 import { createMiddleware } from "@hono/hono/factory";
 import type { UserEnv } from "@/types/hono.ts";
@@ -11,7 +11,7 @@ const userIdParamSchema = z.object({
 });
 
 const setDiscordId = createMiddleware<UserEnv>(async (c, next) => {
-  // @ts-ignore: we use zValidator before using this middleware
+  // @ts-ignore: we use validator before using this middleware
   const discordId = c.req.valid("param").discordUserId;
 
   c.set("userId", discordId);
@@ -28,7 +28,7 @@ const checkPermission = createMiddleware<UserEnv>(async (c, next) => {
 });
 
 const userIdRoutes = new Hono()
-  .use(zValidator("param", userIdParamSchema))
+  .use(validator("param", userIdParamSchema))
   .use(setDiscordId)
   .use(checkPermission)
   .route("/connections", connectionsRoutes);

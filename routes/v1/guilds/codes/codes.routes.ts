@@ -1,5 +1,5 @@
 import { Hono } from "@hono/hono";
-import { zValidator } from "@hono/zod-validator";
+import { describeRoute, validator } from "hono-openapi";
 import { z } from "@zod/zod";
 import { db } from "@/db/index.ts";
 import { serverCodes } from "@/db/schema/index.ts";
@@ -23,84 +23,136 @@ const CodeSchema = z.object({
 });
 
 export default new Hono<GuildEnv>()
-  .post("/", requireRole(["bot"]), zValidator("json", CreateCodeSchema), async (c) => {
-    const { ip, port, password } = c.req.valid("json");
-    const guildId = c.get("guildId");
+  .post(
+    "/",
+    describeRoute({
+      tags: ["Codes"],
+      summary: "Create connect code",
+      description: "Create a new server connection code.",
+      responses: { 201: { description: "Successfully created" }, 402: { description: "Limit reached" } },
+      security: [{ BotAuth: [] }],
+    }),
+    requireRole(["bot"]),
+    validator("json", CreateCodeSchema),
+    async (c) => {
+      const { ip, port, password } = c.req.valid("json");
+      const guildId = c.get("guildId");
 
-    const existingCodeObj = await db.query.serverCodes.findFirst({
-      where: and(eq(serverCodes.guildId, guildId), eq(serverCodes.ip, ip), eq(serverCodes.port, port)),
-      columns: { code: true },
-    });
+      const existingCodeObj = await db.query.serverCodes.findFirst({
+        where: and(eq(serverCodes.guildId, guildId), eq(serverCodes.ip, ip), eq(serverCodes.port, port)),
+        columns: { code: true },
+      });
 
-    if (existingCodeObj) {
-      const existingCode = existingCodeObj.code;
-      await db.update(serverCodes).set({ password: password ?? null }).where(eq(serverCodes.code, existingCode));
-      return c.json({ code: existingCode }, 200);
-    }
+      if (existingCodeObj) {
+        const existingCode = existingCodeObj.code;
+        await db.update(serverCodes).set({ password: password ?? null }).where(eq(serverCodes.code, existingCode));
+        return c.json({ code: existingCode }, 200);
+      }
 
-    const countResult = await db.select({ value: count() }).from(serverCodes).where(eq(serverCodes.guildId, guildId));
-    const codesCount = countResult[0].value;
+      const countResult = await db.select({ value: count() }).from(serverCodes).where(eq(serverCodes.guildId, guildId));
+      const codesCount = countResult[0].value;
 
-    if (codesCount >= config.plans.free.maxCodesPerGuild) {
-      return c.json({ error: "Free codes limit reached for this guild" }, 402);
-    }
+      if (codesCount >= config.plans.free.maxCodesPerGuild) {
+        return c.json({ error: "Free codes limit reached for this guild" }, 402);
+      }
 
-    const newCode = nanoid();
-    try {
-      await db.insert(serverCodes).values({ code: newCode, guildId, ip, port, password: password ?? null });
-    } catch (_) {
-      return c.json({ error: "Failed to generate unique code." }, 500);
-    }
+      const newCode = nanoid();
+      try {
+        await db.insert(serverCodes).values({ code: newCode, guildId, ip, port, password: password ?? null });
+      } catch (_) {
+        return c.json({ error: "Failed to generate unique code." }, 500);
+      }
 
-    return c.json({ code: newCode }, 201);
-  })
-  .get("/:code", requireRole(["bot", "developer"]), zValidator("param", CodeSchema), async (c) => {
-    const { code } = c.req.valid("param");
-    const guildId = c.get("guildId");
-
-    const serverCodeObj = await db.query.serverCodes.findFirst({
-      where: and(eq(serverCodes.code, code), eq(serverCodes.guildId, guildId)),
-      columns: {
-        code: true,
-        ip: true,
-        port: true,
-        password: true,
+      return c.json({ code: newCode }, 201);
+    },
+  )
+  .get(
+    "/:code",
+    describeRoute({
+      tags: ["Codes", "Public"],
+      summary: "Get server details by code",
+      description: "Retrieve server connection details for a specific connect code.",
+      responses: {
+        200: { description: "Successful response" },
       },
-    });
+      security: [{ BotAuth: [] }, { BearerAuth: [] }],
+    }),
+    requireRole(["bot", "developer"]),
+    validator("param", CodeSchema),
+    async (c) => {
+      const { code } = c.req.valid("param");
+      const guildId = c.get("guildId");
 
-    if (!serverCodeObj) {
-      return c.json({ error: "Code not found" }, 404);
-    }
+      const serverCodeObj = await db.query.serverCodes.findFirst({
+        where: and(eq(serverCodes.code, code), eq(serverCodes.guildId, guildId)),
+        columns: {
+          code: true,
+          ip: true,
+          port: true,
+          password: true,
+        },
+      });
 
-    return c.json(serverCodeObj, 200);
-  })
-  .delete("/:code", requireRole(["bot"]), zValidator("param", CodeSchema), async (c) => {
-    const { code } = c.req.valid("param");
-    const guildId = c.get("guildId");
-    const result = await db.delete(serverCodes).where(and(eq(serverCodes.code, code), eq(serverCodes.guildId, guildId)));
+      if (!serverCodeObj) {
+        return c.json({ error: "Code not found" }, 404);
+      }
 
-    if (result.rowsAffected === 0) {
-      return c.json({ error: "Code not found" }, 404);
-    }
+      return c.json(serverCodeObj, 200);
+    },
+  )
+  .delete(
+    "/:code",
+    describeRoute({
+      tags: ["Codes"],
+      summary: "Delete connect code",
+      description: "Delete a specific server connection code.",
+      responses: { 204: { description: "Successfully deleted" }, 404: { description: "Not found" } },
+      security: [{ BotAuth: [] }],
+    }),
+    requireRole(["bot"]),
+    validator("param", CodeSchema),
+    async (c) => {
+      const { code } = c.req.valid("param");
+      const guildId = c.get("guildId");
+      const result = await db.delete(serverCodes).where(and(eq(serverCodes.code, code), eq(serverCodes.guildId, guildId)));
 
-    return c.body(null, 204);
-  })
-  .get("/", requireRole(["bot", "developer"]), ...paginationMiddleware, async (c) => {
-    const guildId = c.get("guildId");
-    const { limit, offset } = c.get("pagination")!;
+      if (result.rowsAffected === 0) {
+        return c.json({ error: "Code not found" }, 404);
+      }
 
-    const countResult = await db.select({ value: count() }).from(serverCodes).where(eq(serverCodes.guildId, guildId));
-    c.set("paginationTotal", countResult[0].value);
+      return c.body(null, 204);
+    },
+  )
+  .get(
+    "/",
+    describeRoute({
+      tags: ["Codes", "Public"],
+      summary: "Get all server codes",
+      description: "Retrieve a paginated list of all server codes for the current guild.",
+      responses: {
+        200: { description: "Successful response" },
+      },
+      security: [{ BotAuth: [] }, { BearerAuth: [] }],
+    }),
+    requireRole(["bot", "developer"]),
+    ...paginationMiddleware,
+    async (c) => {
+      const guildId = c.get("guildId");
+      const { limit, offset } = c.get("pagination")!;
 
-    const codes = await db.select({
-      code: serverCodes.code,
-      ip: serverCodes.ip,
-      port: serverCodes.port,
-      password: serverCodes.password,
-    }).from(serverCodes)
-      .where(eq(serverCodes.guildId, guildId))
-      .limit(limit)
-      .offset(offset);
+      const countResult = await db.select({ value: count() }).from(serverCodes).where(eq(serverCodes.guildId, guildId));
+      c.set("paginationTotal", countResult[0].value);
 
-    return c.json(codes, 200);
-  });
+      const codes = await db.select({
+        code: serverCodes.code,
+        ip: serverCodes.ip,
+        port: serverCodes.port,
+        password: serverCodes.password,
+      }).from(serverCodes)
+        .where(eq(serverCodes.guildId, guildId))
+        .limit(limit)
+        .offset(offset);
+
+      return c.json(codes, 200);
+    },
+  );

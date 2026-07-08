@@ -3,6 +3,7 @@ import { z } from "@zod/zod";
 
 export const rawConfig = {
   ...base,
+  env: Deno.env.get("ENV") || "production",
   port: Number(Deno.env.get("PORT")) || 8000,
   botAccessToken: Deno.env.get("BOT_ACCESS_TOKEN"),
   apiUrl: Deno.env.get("API_URL"),
@@ -19,6 +20,7 @@ const PlanSchema = z.object({
 });
 
 const ConfigSchema = z.object({
+  env: z.enum(["development", "production"]).default("production"),
   port: z.number().int().positive().max(65535),
   botAccessToken: z.string(),
   apiUrl: z.url().regex(/^https?:\/\/.+/),

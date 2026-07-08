@@ -1,5 +1,5 @@
 import { createFactory } from "@hono/hono/factory";
-import { zValidator } from "@hono/zod-validator";
+import { validator } from "hono-openapi";
 import { z } from "@zod/zod";
 import type { IdentityEnv } from "@/types/hono.ts";
 
@@ -25,7 +25,7 @@ const paginationSchema = z.object({
 const factory = createFactory<IdentityEnv>();
 
 export const paginationMiddleware = factory.createHandlers(
-  zValidator("query", paginationSchema),
+  validator("query", paginationSchema),
   async (c, next) => {
     const { page, limit } = c.req.valid("query");
 

@@ -1,6 +1,6 @@
 import { Hono } from "@hono/hono";
 import { createMiddleware } from "@hono/hono/factory";
-import { zValidator } from "@hono/zod-validator";
+import { validator } from "hono-openapi";
 import { z } from "@zod/zod";
 import type { GuildEnv, IdentityEnv } from "@/types/hono.ts";
 
@@ -17,7 +17,7 @@ const guildIdParamSchema = z.object({
 });
 
 const setGuildId = createMiddleware<GuildEnv>(async (c, next) => {
-  // @ts-ignore: we use zValidator before using this middleware
+  // @ts-ignore: we use validator before using this middleware
   const guildId = c.req.valid("param").guildId;
 
   if (guildId === "@me") {
@@ -46,7 +46,7 @@ const checkPermission = createMiddleware<GuildEnv>(async (c, next) => {
 });
 
 const guildIdRoutes = new Hono<IdentityEnv>()
-  .use(zValidator("param", guildIdParamSchema))
+  .use(validator("param", guildIdParamSchema))
   .use(setGuildId)
   .use(checkPermission)
   .route("/codes", codesRoutes)
