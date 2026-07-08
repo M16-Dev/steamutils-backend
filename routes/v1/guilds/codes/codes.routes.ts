@@ -17,7 +17,7 @@ const nanoid = customAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 8);
 const CreateCodeSchema = z.object({
   ip: z.ipv4(),
   port: z.number().int().positive().max(65535),
-  password: z.string().min(1).max(50).optional(),
+  password: z.string().min(1).max(128).optional().nullable(),
 });
 
 const CodeSchema = z.object({
