@@ -6,6 +6,7 @@ import { secureHeaders } from "@hono/hono/secure-headers";
 import { sendMessage } from "@/utils/discordLogger.ts";
 
 import v1Routes from "@/routes/v1/v1.routes.ts";
+import connectRoutes from "@/routes/connect/connect.routes.ts";
 
 const app = new Hono();
 
@@ -13,7 +14,8 @@ app.use(secureHeaders());
 app.use(logger());
 
 const routes = app
-  .route("/v1", v1Routes);
+  .route("/v1", v1Routes)
+  .route("/connect", connectRoutes);
 
 app.onError((err, c) => {
   if (err instanceof HTTPException) {
