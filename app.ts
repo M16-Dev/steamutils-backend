@@ -1,19 +1,24 @@
 import { Hono } from "@hono/hono";
 import { logger } from "@hono/hono/logger";
 import { HTTPException } from "@hono/hono/http-exception";
+import { secureHeaders } from "@hono/hono/secure-headers";
+// import { cors } from "@hono/hono/cors";
+import { sendMessage } from "@/utils/discordLogger.ts";
+import { guildRateLimiter, ipRateLimiter } from "@/middlewares/rateLimiter.ts";
 
-import apiRouter from "@/routes/api/v1/index.ts";
-import connectRouter from "@/routes/connect.ts";
-import connectionsRouter from "@/routes/connections.ts";
+import v1Routes from "@/routes/v1/v1.routes.ts";
+import connectRoutes from "@/routes/connect/connect.routes.ts";
 
 const app = new Hono();
 
+app.use(secureHeaders());
 app.use(logger());
+app.use(ipRateLimiter);
+app.use(guildRateLimiter);
 
 const routes = app
-  .route("/api/v1", apiRouter)
-  .route("/connect", connectRouter)
-  .route("/connections", connectionsRouter);
+  .route("/v1", v1Routes)
+  .route("/connect", connectRoutes);
 
 app.onError((err, c) => {
   if (err instanceof HTTPException) {
@@ -21,6 +26,7 @@ app.onError((err, c) => {
   }
 
   console.error("Internal Server Error:", err);
+  sendMessage("error", "Internal Server Error", `${err.stack ?? err.message}`);
   return c.json({ error: "Internal Server Error" }, 500);
 });
 
