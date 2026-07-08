@@ -14,16 +14,14 @@ export default new Hono()
   .get("/:code", zValidator("param", CodeParamSchema), async (c) => {
     const { code } = c.req.valid("param");
 
-    const result = await db.select({
-      ip: serverCodes.ip,
-      port: serverCodes.port,
-      password: serverCodes.password,
-    })
-      .from(serverCodes)
-      .where(eq(serverCodes.code, code))
-      .limit(1);
-
-    const server = result[0];
+      const server = await db.query.serverCodes.findFirst({
+        where: eq(serverCodes.code, code),
+        columns: {
+          ip: true,
+          port: true,
+          password: true,
+        },
+      });
 
     if (!server) {
       return c.json({ error: "Code not found" }, 404);

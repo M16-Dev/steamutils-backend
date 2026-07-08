@@ -27,13 +27,13 @@ export default new Hono<GuildEnv>()
     const { ip, port, password } = c.req.valid("json");
     const guildId = c.get("guildId");
 
-    const existingResult = await db.select({ code: serverCodes.code })
-      .from(serverCodes)
-      .where(and(eq(serverCodes.guildId, guildId), eq(serverCodes.ip, ip), eq(serverCodes.port, port)))
-      .limit(1);
+    const existingCodeObj = await db.query.serverCodes.findFirst({
+      where: and(eq(serverCodes.guildId, guildId), eq(serverCodes.ip, ip), eq(serverCodes.port, port)),
+      columns: { code: true },
+    });
 
-    if (existingResult.length > 0) {
-      const existingCode = existingResult[0].code;
+    if (existingCodeObj) {
+      const existingCode = existingCodeObj.code;
       await db.update(serverCodes).set({ password: password ?? null }).where(eq(serverCodes.code, existingCode));
       return c.json({ code: existingCode }, 200);
     }
@@ -58,18 +58,21 @@ export default new Hono<GuildEnv>()
     const { code } = c.req.valid("param");
     const guildId = c.get("guildId");
 
-    const result = await db.select({
-      code: serverCodes.code,
-      ip: serverCodes.ip,
-      port: serverCodes.port,
-      password: serverCodes.password,
-    }).from(serverCodes).where(and(eq(serverCodes.code, code), eq(serverCodes.guildId, guildId))).limit(1);
+    const serverCodeObj = await db.query.serverCodes.findFirst({
+      where: and(eq(serverCodes.code, code), eq(serverCodes.guildId, guildId)),
+      columns: {
+        code: true,
+        ip: true,
+        port: true,
+        password: true,
+      },
+    });
 
-    if (!result.length) {
+    if (!serverCodeObj) {
       return c.json({ error: "Code not found" }, 404);
     }
 
-    return c.json(result[0], 200);
+    return c.json(serverCodeObj, 200);
   })
   .delete("/:code", requireRole(["bot"]), zValidator("param", CodeSchema), async (c) => {
     const { code } = c.req.valid("param");

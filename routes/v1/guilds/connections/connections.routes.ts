@@ -59,31 +59,31 @@ export default new Hono<GuildEnv>()
     const guildId = c.get("guildId");
     const { discordId } = c.req.valid("param");
 
-    const result = await db.select({ steamId: connections.steamId })
-      .from(connections)
-      .where(and(eq(connections.guildId, guildId), eq(connections.discordId, discordId)))
-      .limit(1);
+    const connection = await db.query.connections.findFirst({
+      where: and(eq(connections.guildId, guildId), eq(connections.discordId, discordId)),
+      columns: { steamId: true },
+    });
 
-    if (!result.length) {
+    if (!connection) {
       return c.json({ error: "Connection not found." }, 404);
     }
 
-    return c.json({ steamId: result[0].steamId }, 200);
+    return c.json({ steamId: connection.steamId }, 200);
   })
   .get("/steam/:steamId", requireRole(["bot", "developer"]), zValidator("param", z.object({ steamId: z.string().regex(/^\d+$/) })), async (c) => {
     const guildId = c.get("guildId");
     const { steamId } = c.req.valid("param");
 
-    const result = await db.select({ discordId: connections.discordId })
-      .from(connections)
-      .where(and(eq(connections.guildId, guildId), eq(connections.steamId, steamId)))
-      .limit(1);
+    const connection = await db.query.connections.findFirst({
+      where: and(eq(connections.guildId, guildId), eq(connections.steamId, steamId)),
+      columns: { discordId: true },
+    });
 
-    if (!result.length) {
+    if (!connection) {
       return c.json({ error: "Connection not found." }, 404);
     }
 
-    return c.json({ discordId: result[0].discordId }, 200);
+    return c.json({ discordId: connection.discordId }, 200);
   })
   .delete("/discord/:discordId", requireRole(["bot"]), zValidator("param", z.object({ discordId: z.string().regex(/^\d+$/) })), async (c) => {
     const guildId = c.get("guildId");

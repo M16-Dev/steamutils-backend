@@ -27,11 +27,14 @@ export const authMiddleware = createMiddleware<IdentityEnv>(async (c, next) => {
     const devToken = authHeader.replace("Bearer ", "");
     const hashed = await hashToken(devToken);
 
-    const result = await db.select({ guildId: guildTokens.guildId }).from(guildTokens).where(eq(guildTokens.tokenHash, hashed)).limit(1);
-    if (!result.length) return c.json({ error: "Unauthorized" }, 401);
+    const tokenRecord = await db.query.guildTokens.findFirst({
+      where: eq(guildTokens.tokenHash, hashed),
+      columns: { guildId: true },
+    });
+    if (!tokenRecord) return c.json({ error: "Unauthorized" }, 401);
 
     c.set("userRole", "developer");
-    c.set("tokenGuildId", result[0].guildId);
+    c.set("tokenGuildId", tokenRecord.guildId);
     return await next();
   }
 
