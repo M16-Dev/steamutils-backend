@@ -3,12 +3,15 @@ import { z } from "@zod/zod";
 
 export const rawConfig = {
   ...base,
-  port: Number(Deno.env.get("PORT")) ?? 8000,
-  apiKey: Deno.env.get("API_KEY") as string | undefined,
-  appUrl: Deno.env.get("APP_URL") as string | undefined,
-  jwtSecret: Deno.env.get("JWT_SECRET") as string | undefined,
-  botApiUrl: Deno.env.get("BOT_API_URL") as string | undefined,
-  botApiKey: Deno.env.get("BOT_API_KEY") as string | undefined,
+  port: Number(Deno.env.get("PORT")) || 8000,
+  botAccessToken: Deno.env.get("BOT_ACCESS_TOKEN"),
+  apiUrl: Deno.env.get("API_URL"),
+  jwtSecret: Deno.env.get("JWT_SECRET"),
+  botApiUrl: Deno.env.get("BOT_API_URL"),
+  botApiAccessToken: Deno.env.get("BOT_API_ACCESS_TOKEN"),
+  discordWebhookUrl: Deno.env.get("DISCORD_WEBHOOK_URL"),
+  dbUrl: Deno.env.get("DB_URL") ?? "file:./data/steamutils.db",
+  dbToken: Deno.env.get("DB_TOKEN"),
 };
 
 const PlanSchema = z.object({
@@ -17,13 +20,16 @@ const PlanSchema = z.object({
 
 const ConfigSchema = z.object({
   port: z.number().int().positive().max(65535),
-  apiKey: z.string(),
-  appUrl: z.url().regex(/^https?:\/\/.+/),
+  botAccessToken: z.string(),
+  apiUrl: z.url().regex(/^https?:\/\/.+/),
   jwtSecret: z.string(),
   plans: z.record(z.string(), PlanSchema),
   botApiUrl: z.url().regex(/^https?:\/\/.+/),
-  botApiKey: z.string().min(1),
+  botApiAccessToken: z.string().min(1),
+  discordWebhookUrl: z.url().regex(/^https?:\/\/.+/),
   maxTokensPerGuild: z.number().int().positive(),
+  dbUrl: z.string(),
+  dbToken: z.string().optional(),
 });
 
 const parsed = ConfigSchema.safeParse(rawConfig);
