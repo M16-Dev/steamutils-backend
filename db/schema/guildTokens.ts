@@ -1,4 +1,4 @@
-import { index, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const guildTokens = sqliteTable("guild_tokens", {
   id: text("id").primaryKey(),
@@ -9,4 +9,5 @@ export const guildTokens = sqliteTable("guild_tokens", {
   createdBy: text("created_by").notNull(),
 }, (table) => [
   index("idx_guild_tokens_guild").on(table.guildId),
+  uniqueIndex("idx_guild_tokens_token_hash").on(table.tokenHash),
 ]);
