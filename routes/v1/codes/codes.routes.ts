@@ -6,6 +6,7 @@ import { serverCodes } from "@/db/schema/index.ts";
 import { eq } from "drizzle-orm";
 import { decryptPassword } from "@/utils/crypto.ts";
 import { config } from "@/config.ts";
+import { cache } from "hono/cache";
 
 const CodeParamSchema = z.object({
   code: z.string().toUpperCase().regex(/^[A-Z]{8}$/),
@@ -14,6 +15,11 @@ const CodeParamSchema = z.object({
 export default new Hono()
   .get(
     "/:code",
+    cache({
+      cacheName: "steamutils",
+      cacheControl: "max-age=600",
+      wait: true,
+    }),
     describeRoute({
       tags: ["Public", "Codes"],
       summary: "Get server details by code",

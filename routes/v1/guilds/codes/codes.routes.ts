@@ -10,6 +10,7 @@ import { customAlphabet } from "@sitnik/nanoid";
 import { paginationMiddleware } from "@/middlewares/pagination.ts";
 import { requireRole } from "@/middlewares/rbac.ts";
 import { decryptPassword, encryptPassword } from "@/utils/crypto.ts";
+import { cache } from "hono/cache";
 
 const nanoid = customAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 8);
 
@@ -71,6 +72,11 @@ export default new Hono<GuildEnv>()
   )
   .get(
     "/:code",
+    cache({
+      cacheName: "steamutils",
+      cacheControl: "max-age=600",
+      wait: true,
+    }),
     describeRoute({
       tags: ["Codes", "Public"],
       summary: "Get server details by code",
