@@ -28,12 +28,12 @@ export function stripPublicTag(spec: Record<string, unknown>): Record<string, un
 }
 
 /**
- * Filters out paths with "Public" tag from OpenAPI specification.
+ * Filters out paths with "Public" tag from OpenAPI specification and removes BotAuth security scheme from paths.
  * @param spec - OpenAPI specification.
  * @returns OpenAPI specification without "Public" tagged paths.
  */
 export function filterPublicPaths(spec: Record<string, unknown>): Record<string, unknown> {
-  const paths = spec.paths as Record<string, Record<string, { tags?: string[] }>> | undefined;
+  const paths = spec.paths as Record<string, Record<string, { tags?: string[]; security?: Record<string, string[]>[] }>> | undefined;
   if (!paths) return spec;
 
   const filteredPaths: Record<string, unknown> = {};
@@ -44,7 +44,16 @@ export function filterPublicPaths(spec: Record<string, unknown>): Record<string,
     for (const [method, operation] of Object.entries(pathItem)) {
       if (operation?.tags?.includes("Public")) {
         const filteredTags = operation.tags.filter((t) => t !== "Public");
-        filteredPathItem[method] = { ...operation, tags: filteredTags };
+        let security = operation.security;
+        if (Array.isArray(security)) {
+          security = security.filter((s) => !("BotAuth" in s));
+        }
+
+        filteredPathItem[method] = {
+          ...operation,
+          tags: filteredTags,
+          ...(security ? { security } : {}),
+        };
       }
     }
 

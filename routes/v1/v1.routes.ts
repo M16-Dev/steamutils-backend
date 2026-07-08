@@ -1,6 +1,6 @@
 import { Hono } from "@hono/hono";
 import { generateSpecs } from "hono-openapi";
-import { swaggerUI } from "@hono/swagger-ui";
+import { Scalar } from "@scalar/hono-api-reference";
 import { authMiddleware } from "@/middlewares/auth.ts";
 import { denyByDefault } from "@/middlewares/rbac.ts";
 import { filterPublicPaths, stripPublicTag } from "@/utils/openapi.ts";
@@ -52,14 +52,26 @@ v1Routes.get("/openapi.json", async (c) => {
   const spec = await generateSpecs(v1Routes, { documentation: publicDocs });
   return c.json(filterPublicPaths(spec));
 });
-v1Routes.get("/docs", swaggerUI({ url: "/v1/openapi.json" }));
+v1Routes.get(
+  "/docs",
+  Scalar({
+    pageTitle: "SteamUtils Public API",
+    spec: { url: "/v1/openapi.json" },
+  }),
+);
 
 if (config.env === "development") {
   v1Routes.get("/internal/openapi.json", async (c) => {
     const spec = await generateSpecs(v1Routes, { documentation: docs });
     return c.json(stripPublicTag(spec));
   });
-  v1Routes.get("/docs/internal", swaggerUI({ url: "/v1/internal/openapi.json" }));
+  v1Routes.get(
+    "/docs/internal",
+    Scalar({
+      pageTitle: "SteamUtils Internal API",
+      spec: { url: "/v1/internal/openapi.json" },
+    }),
+  );
 }
 
 const routes = v1Routes
