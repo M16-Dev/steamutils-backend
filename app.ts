@@ -5,12 +5,14 @@ import { secureHeaders } from "@hono/hono/secure-headers";
 // import { cors } from "@hono/hono/cors";
 import { sendMessage } from "@/utils/discordLogger.ts";
 import { guildRateLimiter, ipRateLimiter } from "@/middlewares/rateLimiter.ts";
+import { contextStorage } from "@hono/hono/context-storage";
 
 import v1Routes from "@/routes/v1/v1.routes.ts";
 import connectRoutes from "@/routes/connect/connect.routes.ts";
 
 const app = new Hono();
 
+app.use(contextStorage());
 app.use(secureHeaders());
 app.use(logger());
 app.use(ipRateLimiter);

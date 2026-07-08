@@ -4,8 +4,7 @@ export const connections = sqliteTable("connections", {
   discordId: text("discord_id").notNull(),
   steamId: text("steam_id").notNull(),
   guildId: text("guild_id").notNull(),
-  fetched: integer("fetched", { mode: "boolean" }).default(false),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
 }, (table) => [
   primaryKey({ columns: [table.discordId, table.guildId] }),
   uniqueIndex("idx_connections_steam_guild").on(table.steamId, table.guildId),

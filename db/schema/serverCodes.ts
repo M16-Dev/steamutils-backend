@@ -6,7 +6,7 @@ export const serverCodes = sqliteTable("server_codes", {
   ip: text("ip").notNull(),
   port: integer("port").notNull(),
   password: text("password"),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
 }, (table) => [
   uniqueIndex("idx_server_codes_guild_ip_port").on(table.guildId, table.ip, table.port),
 ]);

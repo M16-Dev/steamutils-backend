@@ -1,11 +1,11 @@
-import { index, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const guildTokens = sqliteTable("guild_tokens", {
   id: text("id").primaryKey(),
   tokenHash: text("token_hash").notNull(),
   last4: text("last4").notNull(),
   guildId: text("guild_id").notNull(),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
   createdBy: text("created_by").notNull(),
 }, (table) => [
   index("idx_guild_tokens_guild").on(table.guildId),
