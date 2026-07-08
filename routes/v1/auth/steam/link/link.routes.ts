@@ -3,9 +3,14 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "@zod/zod";
 import { verify } from "@wok/djwt";
 import { config } from "@/config.ts";
-import { db } from "@/db/service.ts";
+import { db } from "@/db/index.ts";
+import { connections } from "@/db/schema/index.ts";
 import { SteamAuth } from "@/utils/steamAuth.ts";
 import { renderHtmlPage } from "@/utils/templates.ts";
+import { sendMessage } from "@/utils/discordLogger.ts";
+import { fetchWithRetry } from "@/utils/fetch.ts";
+
+const usedJtis = new Set<string>();
 
 const jwtKey = await crypto.subtle.importKey(
   "raw",
@@ -16,21 +21,21 @@ const jwtKey = await crypto.subtle.importKey(
 );
 
 const steamAuth = new SteamAuth(
-  `${config.appUrl}/connections/create/callback`,
-  config.appUrl,
+  `${config.apiUrl}/v1/auth/steam/link/callback`,
+  config.apiUrl,
 );
 
-const SteamAuthParamsSchema = z.object({
+const SteamAuthParamSchema = z.object({
   token: z.string(),
 });
 
 export default new Hono()
-  .get("/create", zValidator("query", SteamAuthParamsSchema), (c) => {
+  .get("/", zValidator("query", SteamAuthParamSchema), (c) => {
     const { token } = c.req.valid("query");
     const redirectUrl = steamAuth.getRedirectUrl({ token });
     return c.redirect(redirectUrl);
   })
-  .get("/create/callback", async (c) => {
+  .get("/callback", async (c) => {
     const url = new URL(c.req.url);
 
     let steamId: string | null;
@@ -58,19 +63,33 @@ export default new Hono()
     }
 
     const TokenPayloadSchema = z.object({
+      jti: z.uuid(),
       discordId: z.string(),
       guildId: z.string(),
+      exp: z.number(),
     });
     const parsed = TokenPayloadSchema.safeParse(payload);
     if (!parsed.success) {
       return c.html(renderHtmlPage("Error", "Invalid token payload", true), 400);
     }
 
-    const { discordId, guildId } = parsed.data;
+    const { discordId, guildId, jti, exp } = parsed.data;
+
+    if (usedJtis.has(jti)) {
+      return c.html(renderHtmlPage("Error", "Token has already been used.", true), 401);
+    }
+
+    usedJtis.add(jti);
+    setTimeout(() => usedJtis.delete(jti), (exp * 1000) - Date.now());
 
     try {
-      const success = db.connections.create(discordId, steamId, guildId);
-      if (!success) {
+      const result = await db.insert(connections).values({
+        discordId,
+        steamId,
+        guildId,
+      }).onConflictDoNothing();
+
+      if (result.rowsAffected === 0) {
         return c.html(renderHtmlPage("Error", "Accounts already linked.", true), 409);
       }
     } catch (err) {
@@ -78,14 +97,21 @@ export default new Hono()
       return c.html(renderHtmlPage("Error", "Internal Database Error", true), 500);
     }
 
-    fetch(`${config.botApiUrl}/api/internal/user-verified`, {
+    fetchWithRetry(`${config.botApiUrl}/api/internal/user-verified`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${config.botApiKey}`,
+        "Authorization": `Bearer ${config.botApiAccessToken}`,
       },
       body: JSON.stringify({ guildId, discordId }),
-    }).catch((err) => console.error("Failed to notify bot:", err));
+    }).catch((err) => {
+      console.error("Failed to notify bot after multiple retries:", err);
+      sendMessage(
+        "error",
+        "Failed to notify bot about new connection",
+        `Guild ID: ${guildId}\nDiscord ID: ${discordId}\nSteam ID: ${steamId}\nError: ${err.stack ?? err.message}`,
+      );
+    });
 
     return c.html(
       renderHtmlPage(

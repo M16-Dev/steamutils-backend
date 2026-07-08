@@ -1,7 +1,9 @@
 import { Hono } from "@hono/hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "@zod/zod";
-import { db } from "@/db/service.ts";
+import { db } from "@/db/index.ts";
+import { serverCodes } from "@/db/schema/index.ts";
+import { eq } from "drizzle-orm";
 import { renderHtmlPage } from "@/utils/templates.ts";
 
 const CodeParamSchema = z.object({
@@ -9,16 +11,27 @@ const CodeParamSchema = z.object({
 });
 
 export default new Hono()
-  .get("/:code", zValidator("param", CodeParamSchema), (c) => {
+  .get("/:code", zValidator("param", CodeParamSchema), async (c) => {
     const { code } = c.req.valid("param");
 
-    const server = db.serverCodes.getServerByCode(code);
+    const result = await db.select({
+      ip: serverCodes.ip,
+      port: serverCodes.port,
+      password: serverCodes.password,
+    })
+      .from(serverCodes)
+      .where(eq(serverCodes.code, code))
+      .limit(1);
+
+    const server = result[0];
+
     if (!server) {
-      return c.html(renderHtmlPage("Error", "Server not found", true), 404);
+      return c.json({ error: "Code not found" }, 404);
     }
 
-    const steamUrl = `steam://connect/${server.ip}:${server.port}/${server.password ?? ""}`;
+    // return c.json(server, 200);
 
+    const steamUrl = `steam://connect/${server.ip}:${server.port}/${server.password ?? ""}`;
     return c.html(
       renderHtmlPage(
         "Connecting...",

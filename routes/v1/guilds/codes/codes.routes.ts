@@ -1,0 +1,103 @@
+import { Hono } from "@hono/hono";
+import { zValidator } from "@hono/zod-validator";
+import { z } from "@zod/zod";
+import { db } from "@/db/index.ts";
+import { serverCodes } from "@/db/schema/index.ts";
+import { and, count, eq } from "drizzle-orm";
+import { config } from "@/config.ts";
+import { GuildEnv } from "@/types/hono.ts";
+import { customAlphabet } from "@sitnik/nanoid";
+import { paginationMiddleware } from "@/middlewares/pagination.ts";
+import { requireRole } from "@/middlewares/rbac.ts";
+
+const nanoid = customAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 8);
+
+const CreateCodeSchema = z.object({
+  ip: z.ipv4(),
+  port: z.number().int().positive().max(65535),
+  password: z.string().min(1).max(50).optional(),
+});
+
+const CodeSchema = z.object({
+  code: z.string().toUpperCase().regex(/^[A-Z]{8}$/),
+});
+
+export default new Hono<GuildEnv>()
+  .post("/", requireRole(["bot"]), zValidator("json", CreateCodeSchema), async (c) => {
+    const { ip, port, password } = c.req.valid("json");
+    const guildId = c.get("guildId");
+
+    const existingResult = await db.select({ code: serverCodes.code })
+      .from(serverCodes)
+      .where(and(eq(serverCodes.guildId, guildId), eq(serverCodes.ip, ip), eq(serverCodes.port, port)))
+      .limit(1);
+
+    if (existingResult.length > 0) {
+      const existingCode = existingResult[0].code;
+      await db.update(serverCodes).set({ password: password ?? null }).where(eq(serverCodes.code, existingCode));
+      return c.json({ code: existingCode }, 200);
+    }
+
+    const countResult = await db.select({ value: count() }).from(serverCodes).where(eq(serverCodes.guildId, guildId));
+    const codesCount = countResult[0].value;
+
+    if (codesCount >= config.plans.free.maxCodesPerGuild) {
+      return c.json({ error: "Free codes limit reached for this guild" }, 402);
+    }
+
+    const newCode = nanoid();
+    try {
+      await db.insert(serverCodes).values({ code: newCode, guildId, ip, port, password: password ?? null });
+    } catch (_) {
+      return c.json({ error: "Failed to generate unique code." }, 500);
+    }
+
+    return c.json({ code: newCode }, 201);
+  })
+  .get("/:code", requireRole(["bot", "developer"]), zValidator("param", CodeSchema), async (c) => {
+    const { code } = c.req.valid("param");
+    const guildId = c.get("guildId");
+
+    const result = await db.select({
+      code: serverCodes.code,
+      ip: serverCodes.ip,
+      port: serverCodes.port,
+      password: serverCodes.password,
+    }).from(serverCodes).where(and(eq(serverCodes.code, code), eq(serverCodes.guildId, guildId))).limit(1);
+
+    if (!result.length) {
+      return c.json({ error: "Code not found" }, 404);
+    }
+
+    return c.json(result[0], 200);
+  })
+  .delete("/:code", requireRole(["bot"]), zValidator("param", CodeSchema), async (c) => {
+    const { code } = c.req.valid("param");
+    const guildId = c.get("guildId");
+    const result = await db.delete(serverCodes).where(and(eq(serverCodes.code, code), eq(serverCodes.guildId, guildId)));
+
+    if (result.rowsAffected === 0) {
+      return c.json({ error: "Code not found" }, 404);
+    }
+
+    return c.body(null, 204);
+  })
+  .get("/", requireRole(["bot", "developer"]), ...paginationMiddleware, async (c) => {
+    const guildId = c.get("guildId");
+    const { limit, offset } = c.get("pagination")!;
+
+    const countResult = await db.select({ value: count() }).from(serverCodes).where(eq(serverCodes.guildId, guildId));
+    c.set("paginationTotal", countResult[0].value);
+
+    const codes = await db.select({
+      code: serverCodes.code,
+      ip: serverCodes.ip,
+      port: serverCodes.port,
+      password: serverCodes.password,
+    }).from(serverCodes)
+      .where(eq(serverCodes.guildId, guildId))
+      .limit(limit)
+      .offset(offset);
+
+    return c.json(codes, 200);
+  });
