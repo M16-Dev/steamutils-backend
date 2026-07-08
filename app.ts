@@ -4,6 +4,7 @@ import { HTTPException } from "@hono/hono/http-exception";
 import { secureHeaders } from "@hono/hono/secure-headers";
 // import { cors } from "@hono/hono/cors";
 import { sendMessage } from "@/utils/discordLogger.ts";
+import { guildRateLimiter, ipRateLimiter } from "@/middlewares/rateLimiter.ts";
 
 import v1Routes from "@/routes/v1/v1.routes.ts";
 import connectRoutes from "@/routes/connect/connect.routes.ts";
@@ -12,6 +13,8 @@ const app = new Hono();
 
 app.use(secureHeaders());
 app.use(logger());
+app.use(ipRateLimiter);
+app.use(guildRateLimiter);
 
 const routes = app
   .route("/v1", v1Routes)
