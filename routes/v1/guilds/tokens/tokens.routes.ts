@@ -6,7 +6,7 @@ import { guildTokens } from "@/db/schema/index.ts";
 import { and, count, eq } from "drizzle-orm";
 import config from "@/config.ts";
 import { GuildEnv } from "@/types/hono.ts";
-import { paginationMiddleware } from "@/middlewares/pagination.ts";
+import { paginate, paginationMiddleware } from "@/middlewares/pagination.ts";
 import { requireRole } from "@/middlewares/rbac.ts";
 
 import { hashToken } from "@/utils/crypto.ts";
@@ -75,7 +75,7 @@ const tokensRouter = new Hono<GuildEnv>()
       const { limit, offset } = c.get("pagination")!;
 
       const countResult = await db.select({ value: count() }).from(guildTokens).where(eq(guildTokens.guildId, guildId));
-      c.set("paginationTotal", countResult[0].value);
+      const total = countResult[0].value;
 
       const result = await db.select({
         id: guildTokens.id,
@@ -87,7 +87,7 @@ const tokensRouter = new Hono<GuildEnv>()
         .limit(limit)
         .offset(offset);
 
-      return c.json(result);
+      return c.json(paginate(result, total));
     },
   )
   .delete(

@@ -5,7 +5,7 @@ import { db } from "@/db/index.ts";
 import { connections } from "@/db/schema/index.ts";
 import { and, count, eq, gte } from "drizzle-orm";
 import type { GuildEnv } from "@/types/hono.ts";
-import { paginationMiddleware } from "@/middlewares/pagination.ts";
+import { paginate, paginationMiddleware } from "@/middlewares/pagination.ts";
 import { requireRole } from "@/middlewares/rbac.ts";
 
 const DeleteConnectionSchema = z.object({
@@ -37,13 +37,10 @@ export default new Hono<GuildEnv>()
       const { limit, offset } = c.get("pagination")!;
       const { after } = c.req.valid("query");
 
-      let whereClause = eq(connections.guildId, guildId);
-      if (after) {
-        whereClause = and(whereClause, gte(connections.createdAt, after))!;
-      }
+      const whereClause = after ? and(eq(connections.guildId, guildId), gte(connections.createdAt, new Date(after))) : eq(connections.guildId, guildId);
 
       const countResult = await db.select({ value: count() }).from(connections).where(whereClause);
-      c.set("paginationTotal", countResult[0].value);
+      const total = countResult[0].value;
 
       const result = await db.select()
         .from(connections)
@@ -51,7 +48,7 @@ export default new Hono<GuildEnv>()
         .limit(limit)
         .offset(offset);
 
-      return c.json(result, 200);
+      return c.json(paginate(result, total));
     },
   )
   .delete(

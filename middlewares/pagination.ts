@@ -2,6 +2,7 @@ import { createFactory } from "@hono/hono/factory";
 import { validator } from "hono-openapi";
 import { z } from "@zod/zod";
 import type { IdentityEnv } from "@/types/hono.ts";
+import { getContext } from "@hono/hono/context-storage";
 
 export interface PaginationMeta {
   total: number;
@@ -25,35 +26,52 @@ const paginationSchema = z.object({
 const factory = createFactory<IdentityEnv>();
 
 /**
- * Pagination middleware for Hono.
- * It adds query params for pagination and extends response with meta data.
- * Sets pagination object in context ({ page, limit, offset })
+ * Validates query params for pagination and sets the pagination env var.
+ * Adds pagination object ({ page, limit, offset }) to Context.
+ * Remember to return paginate(items, total) from the handler.
+ * @example
+ * app.get("/", ...paginationMiddleware, (c) => {
+ *   const { page, limit, offset } = c.req.valid("query");
+ *   const items = await db.query.items.findMany({ limit, offset });
+ *   const data = paginate(items, total);
+ *   return c.json(data);
+ * });
  */
 export const paginationMiddleware = factory.createHandlers(
   validator("query", paginationSchema),
   async (c, next) => {
     const { page, limit } = c.req.valid("query");
-
     const offset = (page - 1) * limit;
     c.set("pagination", { page, limit, offset });
-
     await next();
-
-    const total = c.get("paginationTotal");
-    if (total !== undefined && c.res.ok) {
-      const data = await c.res.json();
-      const totalPages = Math.ceil(total / limit);
-
-      const meta: PaginationMeta = {
-        total,
-        page,
-        limit,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
-      };
-
-      c.res = c.json({ data, meta });
-    }
   },
 );
+
+/**
+ * Helper function to wrap your data in a paginated response.
+ * Used in conjuction with paginationMiddleware.
+ * @example
+ * app.get("/", ...paginationMiddleware, (c) => {
+ *   const { page, limit, offset } = c.req.valid("query");
+ *   const items = await db.query.items.findMany({ limit, offset });
+ *   const data = paginate(items, total);
+ *   return c.json(data);
+ * });
+ */
+export function paginate<T>(data: T[], total: number): PaginatedResponse<T> {
+  const c = getContext<IdentityEnv>();
+  const { page, limit } = c.get("pagination")!;
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    data,
+    meta: {
+      total,
+      page,
+      limit,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1,
+    },
+  };
+}

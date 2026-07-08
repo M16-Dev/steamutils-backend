@@ -12,7 +12,6 @@ export type IdentityEnv = {
     tokenGuildId?: string;
     permissionsChecked?: boolean;
     pagination?: PaginationEnv;
-    paginationTotal?: number;
   };
 };
 

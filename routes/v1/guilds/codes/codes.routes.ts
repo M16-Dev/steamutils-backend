@@ -7,7 +7,7 @@ import { and, count, eq } from "drizzle-orm";
 import { config } from "@/config.ts";
 import { GuildEnv } from "@/types/hono.ts";
 import { customAlphabet } from "@sitnik/nanoid";
-import { paginationMiddleware } from "@/middlewares/pagination.ts";
+import { paginate, paginationMiddleware } from "@/middlewares/pagination.ts";
 import { requireRole } from "@/middlewares/rbac.ts";
 import { decryptPassword, encryptPassword } from "@/utils/crypto.ts";
 import { cache } from "hono/cache";
@@ -154,7 +154,7 @@ export default new Hono<GuildEnv>()
       const { limit, offset } = c.get("pagination")!;
 
       const countResult = await db.select({ value: count() }).from(serverCodes).where(eq(serverCodes.guildId, guildId));
-      c.set("paginationTotal", countResult[0].value);
+      const total = countResult[0].value;
 
       const codes = await db.select({
         code: serverCodes.code,
@@ -172,6 +172,6 @@ export default new Hono<GuildEnv>()
         }
       }
 
-      return c.json(codes, 200);
+      return c.json(paginate(codes, total));
     },
   );

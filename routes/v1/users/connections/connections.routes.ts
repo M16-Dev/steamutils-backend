@@ -5,7 +5,7 @@ import { db } from "@/db/index.ts";
 import { connections } from "@/db/schema/index.ts";
 import { and, count, eq } from "drizzle-orm";
 import { UserEnv } from "@/types/hono.ts";
-import { paginationMiddleware } from "@/middlewares/pagination.ts";
+import { paginate, paginationMiddleware } from "@/middlewares/pagination.ts";
 import { requireRole } from "@/middlewares/rbac.ts";
 
 export default new Hono<UserEnv>()
@@ -25,7 +25,7 @@ export default new Hono<UserEnv>()
       const { limit, offset } = c.get("pagination")!;
 
       const countResult = await db.select({ value: count() }).from(connections).where(eq(connections.discordId, discordId));
-      c.set("paginationTotal", countResult[0].value);
+      const total = countResult[0].value;
 
       const result = await db.select()
         .from(connections)
@@ -33,7 +33,7 @@ export default new Hono<UserEnv>()
         .limit(limit)
         .offset(offset);
 
-      return c.json(result, 200);
+      return c.json(paginate(result, total));
     },
   )
   .delete(
