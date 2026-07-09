@@ -28,6 +28,11 @@ export const requireRole = (allowedRoles: Role[]) => {
  */
 export const denyByDefault = createMiddleware<IdentityEnv>(async (c, next) => {
   await next();
+
+  if (c.res.status >= 400) {
+    return;
+  }
+
   if (!c.get("permissionsChecked")) {
     console.warn(`[SECURITY] ${c.req.method} ${c.req.path} — missing requireRole(), access denied`);
     sendMessage("error", "Security Alert", `${c.req.method} ${c.req.path} — missing requireRole(), access denied`);
