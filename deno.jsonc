@@ -14,10 +14,12 @@
   "imports": {
     "@/": "./",
     "@hono-rate-limiter/hono-rate-limiter": "jsr:@hono-rate-limiter/hono-rate-limiter@^0.4.2",
+    "@hono-rate-limiter/redis": "jsr:@hono-rate-limiter/redis@^0.1.4",
     "@hono/hono": "jsr:@hono/hono@^4.12.27",
     "@hono/standard-validator": "jsr:@hono/standard-validator@^0.2.3",
     "@hono/zod-validator": "jsr:@hono/zod-validator@^0.8.0",
     "@libsql/client": "npm:@libsql/client@^0.17.4",
+    "@upstash/redis": "npm:@upstash/redis@^1.38.0",
     "@wok/djwt": "jsr:@wok/djwt@^3.0.2",
     "@zod/zod": "npm:zod@^4.3.6",
     "@sitnik/nanoid": "jsr:@sitnik/nanoid@^5.1.11",
