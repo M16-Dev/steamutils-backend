@@ -6,7 +6,7 @@ import { serverCodes } from "@/db/schema/index.ts";
 import { eq } from "drizzle-orm";
 import { decryptPassword } from "@/utils/crypto.ts";
 import { config } from "@/config.ts";
-import { cache } from "hono/cache";
+import { cache } from "@/middlewares/cache.ts";
 
 const CodeParamSchema = z.object({
   code: z.string().toUpperCase().regex(/^[A-Z]{8}$/),
@@ -17,8 +17,7 @@ export default new Hono()
     "/:code",
     cache({
       cacheName: "steamutils",
-      cacheControl: "max-age=600",
-      wait: true,
+      maxAge: 600,
     }),
     describeRoute({
       tags: ["Public", "Codes"],

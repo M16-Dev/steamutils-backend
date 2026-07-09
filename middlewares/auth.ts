@@ -5,6 +5,7 @@ import { guildTokens } from "@/db/schema/index.ts";
 import { eq } from "drizzle-orm";
 import { hashToken, safeCompare } from "@/utils/crypto.ts";
 import { config } from "@/config.ts";
+import { getCache, setCache } from "@/utils/cache.ts";
 
 /**
  * Authentication middleware for Hono.
@@ -32,11 +33,21 @@ export const authMiddleware = createMiddleware<IdentityEnv>(async (c, next) => {
     const devToken = authHeader.replace("Bearer ", "");
     const hashed = await hashToken(devToken);
 
+    const cached = await getCache<{ guildId: string }>("auth-tokens", hashed);
+
+    if (cached) {
+      c.set("userRole", "developer");
+      c.set("tokenGuildId", cached.guildId);
+      return await next();
+    }
+
     const tokenRecord = await db.query.guildTokens.findFirst({
       where: eq(guildTokens.tokenHash, hashed),
       columns: { guildId: true },
     });
     if (!tokenRecord) return c.json({ error: "Unauthorized" }, 401);
+
+    await setCache("auth-tokens", hashed, { guildId: tokenRecord.guildId }, 60);
 
     c.set("userRole", "developer");
     c.set("tokenGuildId", tokenRecord.guildId);

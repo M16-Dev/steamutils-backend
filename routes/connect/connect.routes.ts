@@ -7,38 +7,48 @@ import { eq } from "drizzle-orm";
 import { renderHtmlPage } from "@/utils/templates.ts";
 import { decryptPassword } from "@/utils/crypto.ts";
 import { config } from "@/config.ts";
+import { cache } from "@/middlewares/cache.ts";
 
 const CodeParamSchema = z.object({
   code: z.string().toUpperCase().regex(/^[A-Z]{8}$/),
 });
 
-export default new Hono().get("/:code", zValidator("param", CodeParamSchema), async (c) => {
-  const { code } = c.req.valid("param");
+export default new Hono()
+  .get(
+    "/:code",
+    cache({
+      cacheName: "steamutils",
+      maxAge: 600,
+    }),
+    zValidator("param", CodeParamSchema),
+    async (c) => {
+      const { code } = c.req.valid("param");
 
-  const server = await db.query.serverCodes.findFirst({
-    where: eq(serverCodes.code, code),
-    columns: {
-      ip: true,
-      port: true,
-      password: true,
+      const server = await db.query.serverCodes.findFirst({
+        where: eq(serverCodes.code, code),
+        columns: {
+          ip: true,
+          port: true,
+          password: true,
+        },
+      });
+
+      if (!server) {
+        return c.html(renderHtmlPage("Error", "Server not found", true), 404);
+      }
+
+      if (server.password) {
+        server.password = await decryptPassword(server.password, config.encryptionKey);
+      }
+
+      const steamUrl = `steam://connect/${server.ip}:${server.port}/${server.password ?? ""}`;
+      return c.html(
+        renderHtmlPage(
+          "Connecting...",
+          `You are being redirected to the game server.<br><br><a href="${steamUrl}" style="color: #22c55e; text-decoration: underline;">Click here if nothing happens</a>`,
+          false,
+          steamUrl,
+        ),
+      );
     },
-  });
-
-  if (!server) {
-    return c.html(renderHtmlPage("Error", "Server not found", true), 404);
-  }
-
-  if (server.password) {
-    server.password = await decryptPassword(server.password, config.encryptionKey);
-  }
-
-  const steamUrl = `steam://connect/${server.ip}:${server.port}/${server.password ?? ""}`;
-  return c.html(
-    renderHtmlPage(
-      "Connecting...",
-      `You are being redirected to the game server.<br><br><a href="${steamUrl}" style="color: #22c55e; text-decoration: underline;">Click here if nothing happens</a>`,
-      false,
-      steamUrl,
-    ),
   );
-});
