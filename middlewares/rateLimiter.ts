@@ -9,6 +9,7 @@ export const ipRateLimiter = rateLimiter({
   windowMs: 10 * 1000,
   limit: 30,
   keyGenerator: (c: Context) => c.req.header("x-forwarded-for")?.split(",")[0].trim() ?? "",
+  skip: (c: Context<IdentityEnv>) => c.get("userRole") === "bot",
   message: "Too many requests, try again later.",
 });
 
