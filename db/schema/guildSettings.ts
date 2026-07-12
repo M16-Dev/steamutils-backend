@@ -1,5 +1,5 @@
 import { primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { z } from "@zod/zod";
+import { z } from "zod";
 
 export const guildSettingsSchema = z.object({
   verifiedRoleId: z.string().regex(/^\d+$/).optional().nullable(),
