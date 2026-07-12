@@ -3,7 +3,7 @@ import { z } from "zod";
 
 export const guildSettingsSchema = z.object({
   verifiedRoleId: z.string().regex(/^\d+$/).optional().nullable(),
-});
+}).strict();
 
 export type IGuildSettings = z.infer<typeof guildSettingsSchema>;
 
