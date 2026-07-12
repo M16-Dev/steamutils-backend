@@ -10,13 +10,13 @@ import { contextStorage } from "@hono/hono/context-storage";
 import v1Routes from "@/routes/v1/v1.routes.ts";
 import connectRoutes from "@/routes/connect/connect.routes.ts";
 
-const app = new Hono();
+const app = new Hono({ strict: false });
 
 app.use(contextStorage());
-app.use(secureHeaders());
 app.use(logger());
 app.use(ipRateLimiter);
 app.use(guildRateLimiter);
+app.use(secureHeaders());
 
 const routes = app
   .route("/v1", v1Routes)
