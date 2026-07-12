@@ -5,8 +5,8 @@ import { z } from "@zod/zod";
 import type { GuildEnv, IdentityEnv } from "@/types/hono.ts";
 
 import codesRoutes from "./codes/codes.routes.ts";
-import configRoutes from "./config/config.routes.ts";
 import connectionsRoutes from "./connections/connections.routes.ts";
+import settingsRoutes from "./settings/settings.routes.ts";
 import tokensRoutes from "./tokens/tokens.routes.ts";
 
 const guildIdParamSchema = z.object({
@@ -50,8 +50,8 @@ const guildIdRoutes = new Hono<IdentityEnv>()
   .use(setGuildId)
   .use(checkPermission)
   .route("/codes", codesRoutes)
-  .route("/config", configRoutes)
   .route("/connections", connectionsRoutes)
+  .route("/settings", settingsRoutes)
   .route("/tokens", tokensRoutes);
 
 const guildsRoutes = new Hono()
